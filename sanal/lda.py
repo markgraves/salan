@@ -15,16 +15,18 @@ from corpus import SACorpus, GSCorpus, cleanup_text
 from IPython import embed
 from lsa import SABatch, read_docquery_file
 import pandas as pd
-logger = logging.getLogger('sa')
+logger = logging.getLogger('salan')
 log_filename = 'log.txt'
 
-defaultcorpus = '../corpus-responses/All.txt'
-lsaspacedir = '/Users/markgraves/Projects/semanticAnalysis-Local/lsa-spaces/'
-ldamodeldir = '/Users/markgraves/Projects/semanticAnalysis-Local/lda-topic-models/'
+#Cache model files for later use, if desired
+SALAN_CACHE = os.environ['SALAN_CACHE']
+if SALAN_CACHE:
+    ldamodeldir = os.path.join(os.environ['SALAN_CACHE'], 'lda-topic-models/')
+else:
+    ldamodeldir = '.'
 
-mallet_path = '/Users/markgraves/Projects/semanticAnalysis/topics/mallet/mallet-2.0.7/bin/mallet'
-#mallet_path = '/Users/markgraves/Projects/semanticAnalysis/topics/mallet/mallet-2.0.8RC2/bin/mallet' #not supported
-
+#Will need to update with mallet bin and stoplist locations
+mallet_path = '../mallet/mallet-2.0.7/bin/mallet'
 stoplistfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lib/', "stoplist-mallet-en.txt")
         
 class LDA:
