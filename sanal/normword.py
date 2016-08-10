@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import nltk
 import logging
 
-#logger = logging.getLogger(__name__)
 logger = logging.getLogger('salan')
 log_filename = 'log.txt'
 
