@@ -1,25 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division, print_function
-import os, argparse, logging, sys
+import logging
+import os, argparse, sys
 import re, string
+
 from gensim import corpora, models, similarities
 import gensim.utils
-from load_word_count import normalize_word
 import nltk.corpus
 from IPython import embed
 import fileinput
 
-logger = logging.getLogger('salan')
-log_filename = 'log.txt'
+from sautil import normalize_word, get_stoplist
 
-stoplistfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lib/', "stoplist-mallet-en.txt")
-
-def load_stoplist(fname=stoplistfile):
-    with open(fname) as fp:
-        stoplist = fp.read().split()
-    return stoplist
+LOGGER = logging.getLogger(__name__)
 
 class SACorpus:
 
@@ -184,20 +178,23 @@ class SACorpus:
             else:
                 print("%s\t%s\t%s" % (id, category, string.strip(line)))
     
-    def tokens_by_text(self, stopwords=''): 
-        id, cat, tokens = zip(*self.id_cat_tokens_by_text(stopwords=stopwords))
+    def tokens_by_text(self, stopwords='', stopwordlist=[]): 
+        id, cat, tokens = zip(*self.id_cat_tokens_by_text(stopwords=stopwords, stopwordlist=stopwordlist))
         return tokens
 
-    def id_cat_tokens_by_text(self, stopwords=''): #MAYBE TODO: Could add filters as args here
+    def id_cat_tokens_by_text(self, stopwords='', stopwordlist=[]): #MAYBE TODO: Could add filters as args here
         (stopwords, stoplist) = get_stoplist(stopwords)
         logger.debug('Filtering %s stopwords from %s.' % (stopwords, self.corpusfname))
+        if stopwordlist:
+            logger.debug('Filtering additional stopwords from %s: %s.' % (self.corpusfname, stopwordlist))
+            stoplist += stopwordlist
         re_token = re.compile(r"[^a-zA-Z0-9 ]+")
         for id, category, text in self:
             text = re_token.sub('', text) 
             word_list = text.split()
             tokens = []
-            #tokens = [normalize_word(w, lemmatize=True) for w in word_list if w not in stoplist]
-            for w in word_list: #9/12/15 fixed bug which normalized after stoplist removal and missed "I" etc
+            for w in word_list:
+                # Normalization is before stoplist removal in case normalization yields stopword
                 nw = normalize_word(w, lemmatize=True)
                 if nw not in stoplist:
                     tokens.append(nw)
@@ -207,32 +204,6 @@ class SACorpus:
         for tokens in self.tokens_by_text():
             print(tokens)
 
-stoplist_nonfl = ['yeah', 'um']
-#stopwords are upper case: NONE, NLTK, MALLET, NONFL; may also return UNKNOWN-NONE
-#TODO: could add caching for MALLET
-def get_stoplist(stopwords):
-    if stopwords == '': #default
-        stopwords = 'NLTK'
-    if stopwords == 'NONE':
-        return ('NONE', [])
-    #Handle lists
-    if stopwords == 'NLTK':
-        stoplist = nltk.corpus.stopwords.words('english') # use nltk stop words
-    elif stopwords == 'MALLET':
-        stoplist = load_stoplist()
-    elif stopwords == 'NONFL':
-        stoplist = []
-    else: #unknown
-        return ('UNKNOWN-NONE', [])
-    stoplist.extend(stoplist_nonfl) #extend all with nonfl
-    return (stopwords, stoplist)
-        
-#copied from id_cat_tokens_by_text
-def cleanup_text(text, stoplist=nltk.corpus.stopwords.words('english'), re_token=re.compile(r"[^a-zA-Z0-9 ]+"), lemmatize=True, lowercase=True):
-    text = re_token.sub('', text) 
-    word_list = text.split()
-    tokens = [normalize_word(w, lemmatize=lemmatize, lowercase=lowercase) for w in word_list if w not in stoplist]
-    return tokens
 
 
 def init_args(parser='', scriptpath=''):
@@ -246,8 +217,10 @@ def init_args(parser='', scriptpath=''):
     parser.add_argument('--width', dest='printwidth', default='', help='Number of characters/tokens of text document to print')
     parser.add_argument('--iterline', dest='itercode', action="store_const", const=SACorpus.ITER_LINE, help='Iterate over lines in reading file, instead of sections.')
     parser.add_argument('--iterpara', dest='itercode', action="store_const", const=SACorpus.ITER_PARA, help='Iterate over paragraphs in reading file, instead of sections.')
-    parser.add_argument('--iterid', dest='itercode', action="store_const", const=SACorpus.ITER_ID, help='Iterate over participants/ids in reading file, instead of sections.')
+    parser.add_argument('--iterid', dest='itercode', action="store_const", const=SACorpus.ITER_ID, help='Iterate over docs/participants/ids in reading file, instead of sections.')
     parser.add_argument('--embed', dest='embed', action="store_true", help='Bring up an IPython prompt after loading the corpus.')
+    parser.add_argument('--stop', dest='stopwords', default='', help='Remove stopwords from corpus: none, nltk, mallet, nonfl. Nltk and mallet also include nonfl (yeah, um). Default is nltk.')
+    parser.add_argument('--stopwords', dest='stopwordlist', default='', help='Additional stopwords to include, separated by commas with no spaces')
     args = parser.parse_args()
     if not args.itercode:
         args.itercode = SACorpus.ITER_LNI
@@ -279,6 +252,6 @@ def main():
         embed()
 
 if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG)    
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)    
     #logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     main()
