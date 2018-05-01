@@ -1,4 +1,4 @@
-"""Normalize word"""
+"""Semantic analysis utilities"""
 
 import logging
 import nltk
@@ -9,13 +9,7 @@ NORMWORD_WNL = None
 NORMWORD_POS = {}
 NORMWORD_CACHE = {}
 
-
-def init_normword_wnl():
-    "Initialize word net lemmatizer for normword"
-    global NORMWORD_WNL
-    NORMWORD_WNL = nltk.stem.wordnet.WordNetLemmatizer()
-    return NORMWORD_WNL
-
+# Normalize word
 
 def normalize_word(word, lowercase=True, lemmatize=True):
     "Normalize word by stripping plural nouns"
@@ -43,6 +37,13 @@ def normalize_word(word, lowercase=True, lemmatize=True):
         NORMWORD_POS[word] = treebank_tag
     NORMWORD_CACHE[word] = newword
     return newword
+
+
+def init_normword_wnl():
+    "Initialize word net lemmatizer for normword"
+    global NORMWORD_WNL
+    NORMWORD_WNL = nltk.stem.wordnet.WordNetLemmatizer()
+    return NORMWORD_WNL
 
 
 def get_wordnet_pos(treebank_tag):
