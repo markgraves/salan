@@ -18,16 +18,20 @@ log_filename = 'log.txt'
 SALAN_CACHE = os.environ['SALAN_CACHE']
 if SALAN_CACHE:
     lsaspacedir = os.path.join(os.environ['SALAN_CACHE'], 'lsa-spaces/')
-else:
-    lsaspacedir = '.'
+elif not os.path.exists(lsaspacedir):
+    lsaspacedir = 'lsa-spaces/'
+    if not os.path.exists(lsaspacedir):
+        lsaspacedir = './'        
+
 
 class GSCorpus():
-    def __init__(self, corpus, stopwords=''):
+    def __init__(self, corpus, stopwords='', stopwordlist=[]):
         self.name = ''
         self.corpus = corpus
         self._docnum = 0
         self.doctitle = []
         self.stopwords = stopwords.upper()
+        self.stopwordlist = stopwordlist
         self.savetext = False
         self.textdict = {}
 
@@ -76,7 +80,7 @@ class GSCorpus():
         return dictionary
 
     def save_dict(self, name):
-        self.dictionary = corpora.Dictionary(self.corpus.tokens_by_text(stopwords=self.stopwords))
+        self.dictionary = corpora.Dictionary(self.corpus.tokens_by_text(stopwords=self.stopwords, stopwordlist=self.stopwordlist)))
         self.dictionary.save(os.path.join(lsaspacedir, name + '.dict'))
 
     @classmethod
@@ -129,7 +133,7 @@ class GSCorpus():
     def iter_tokens(self, dictionary=''):
         if not dictionary:
             dictionary = self.dictionary
-        for id, cat, tokens in self.corpus.id_cat_tokens_by_text(stopwords=self.stopwords):
+        for id, cat, tokens in self.corpus.id_cat_tokens_by_text(stopwords=self.stopwords, stopwordlist=self.stopwordlist):
             self.doctitle.append((id, cat))
             if self.savetext:
                 self.textdict[self._docnum] = tokens
@@ -145,6 +149,15 @@ class GSCorpus():
             if width != 0:
                 sortedvec = sortedvec[:width]
             print('%s\t%s\t%s\t%s\n' % (str(docnum), idx, cat, '\t'.join(self.dictionary[wordid]+'('+str(int(count))+')' for wordid, count in sortedvec)))
+            docnum += 1
+
+    def print_doctitles(self):
+        """Print document titles"""
+        docnum = 0
+        for dt in self.doctitle:
+            idx = dt[0]
+            cat = dt[1]
+            print('%s\t%s\t%s\n' % (str(docnum), idx, cat))
             docnum += 1
 
     #Methods called from other modules
@@ -208,7 +221,7 @@ class GSCorpus():
 
 def init_args(parser='', scriptpath=''):
     if not parser:
-        parser = argparse.ArgumentParser(description='Load and Build Corpora fo Gensim.')
+        parser = argparse.ArgumentParser(description='Load and Build Corpora for Gensim.')
     if not scriptpath:
         scriptpath = os.path.dirname(os.path.realpath(__file__))
     parser.add_argument('--name', dest='name', default="", help='System name of the corpus.')
@@ -216,7 +229,9 @@ def init_args(parser='', scriptpath=''):
     parser.add_argument('--maxwords', dest='maxsize', type=int, default=0, help='Set maximum number of words for each document in the corpus.')
     parser.add_argument('--print', dest='printcorpus', action="store_true", help='Print either the corpus <corpusfname> (without saving) or the corpus <name>')
     parser.add_argument('--width', dest='printwidth', default='', help='Number of characters/tokens of text document to print')
+    parser.add_argument('--printdoctitles', dest='printdoctitles', action="store_true", help='Print document titles of the corpus <name>')
     parser.add_argument('--stop', dest='stopwords', default='', help='Remove stopwords from corpus: none, nltk, mallet, nonfl. Nltk and mallet also include nonfl (yeah, um). Default is nltk.')
+    parser.add_argument('--stopwords', dest='stopwordlist', default='', help='Additional stopwords to include, separated by commas with no spaces')
     parser.add_argument('--embed', dest='embed', action="store_true", help='Bring up an IPython prompt after loading the corpus.')
     args = parser.parse_args()
     return args
@@ -238,7 +253,7 @@ def main():
                 print('%s\t%s' % (k,v))
         return
     sacorpus = SACorpus(args.corpusfname, maxsize=args.maxsize, itercode=args.itercode)
-    gscorpus = GSCorpus(sacorpus, stopwords=args.stopwords)
+    gscorpus = GSCorpus(sacorpus, stopwords=args.stopwords, stopwordlist=args.stopwordlist.split(','))
     if args.embed:
         embed()
         return
@@ -256,6 +271,6 @@ def main():
         embed()
 
 if __name__ == "__main__":
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG)    
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)    
     #logging.basicConfig(filename=log_filename, level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     main()
