@@ -220,7 +220,6 @@ def init_args(parser='', scriptpath=''):
     parser.add_argument('--iterid', dest='itercode', action="store_const", const=SACorpus.ITER_ID, help='Iterate over docs/participants/ids in reading file, instead of sections.')
     parser.add_argument('--embed', dest='embed', action="store_true", help='Bring up an IPython prompt after loading the corpus.')
     parser.add_argument('--stop', dest='stopwords', default='', help='Remove stopwords from corpus: none, nltk, mallet, nonfl. Nltk and mallet also include nonfl (yeah, um). Default is nltk.')
-    parser.add_argument('--stopwords', dest='stopwordlist', default='', help='Additional stopwords to include, separated by commas with no spaces')
     args = parser.parse_args()
     if not args.itercode:
         args.itercode = SACorpus.ITER_LNI
@@ -236,20 +235,11 @@ def main():
                 sacorpus.print_corpus(slice(0,int(args.printwidth)))
             else:
                 sacorpus.print_corpus(slice(0,50))
-        elif args.name:
-            gscorpus = GSCorpus.load(args.name)
-            gscorpus.doctitle = GSCorpus.load_doctitle(args.name)
-            if args.printwidth:
-                gscorpus.print_corpus(int(args.printwidth))
-            else:
-                gscorpus.print_corpus(10)
         return
     sacorpus = SACorpus(args.corpusfname, maxsize=args.maxsize, itercode=args.itercode)
     if args.embed:
         embed()
         return
-    if args.embed:
-        embed()
 
 if __name__ == "__main__":
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)    
