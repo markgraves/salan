@@ -9,7 +9,11 @@ NORMWORD_WNL = None
 NORMWORD_POS = {}
 NORMWORD_CACHE = {}
 
-# Normalize word
+MALLET_STOPLISTFILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../lib/', "stoplist-mallet-en.txt")
+STOPLIST_NONFL = ['yeah', 'um']
+
+
+## Normalize word
 
 def normalize_word(word, lowercase=True, lemmatize=True):
     "Normalize word by stripping plural nouns"
@@ -60,5 +64,49 @@ def get_wordnet_pos(treebank_tag):
     else:
         return ''
 
+
+## Stop word processing
+
+# stopwords are upper case: NONE, NLTK, MALLET, NONFL; may also return UNKNOWN-NONE or FILE
+# TODO: could add caching for MALLET
+def get_stoplist(stopwords, includenonfl=True):
+    "Get stopword list for NONE, NLTK, MALLET, NONFL, or filename. Default is NLTK."
+    if stopwords == '':  # default
+        stopwords = 'NLTK'
+    if stopwords == 'NONE':
+        return ('NONE', [])
+    # Handle lists
+    if stopwords == 'NLTK':
+        stoplist = nltk.corpus.stopwords.words('english')  # use nltk stop words
+    elif stopwords == 'MALLET':
+        stoplist = load_stoplist(MALLET_STOPLISTFILE)
+    elif stopwords == 'NONFL':
+        stoplist = []
+    else:  # unknown
+        if os.path.isfile(stopwords):
+            stoplist = load_stoplist(stopwords)
+            return ('FILE', stoplist)
+        else:
+            return ('UNKNOWN-NONE', [])
+    if includenonfl or (stopwords == 'NONFL'):
+        stoplist.extend(STOPLIST_NONFL)  # extend nonfl, ntlk, and mallet with nonfl
+    return (stopwords, stoplist)
+
+
+def load_stoplist(fname=MALLET_STOPLISTFILE):
+    "Load stoplist file"
+    with open(fname) as fp:
+        stoplist = fp.read().split()
+    return stoplist
+
+
+## Stand alone utilities
+
+# copied from id_cat_tokens_by_text in fcorpus and simplified
+def cleanup_text(text, stoplist=nltk.corpus.stopwords.words('english'), re_token=re.compile(r"[^a-zA-Z0-9 ]+"), lemmatize=True, lowercase=True):
+    text = re_token.sub('', text) 
+    word_list = text.split()
+    tokens = [normalize_word(w, lemmatize=lemmatize, lowercase=lowercase) for w in word_list if w not in stoplist]
+    return tokens
 
 
