@@ -6,10 +6,12 @@ import os, argparse, logging, sys
 import re, string
 from gensim import corpora, models, similarities
 import gensim.utils
-from load_word_count import normalize_word
 import nltk.corpus
 from IPython import embed
 import fileinput
+from sautil import normalize_word
+import fcorpus
+from fcorpus import SACorpus
 
 logger = logging.getLogger('salan')
 log_filename = 'log.txt'
@@ -80,7 +82,7 @@ class GSCorpus():
         return dictionary
 
     def save_dict(self, name):
-        self.dictionary = corpora.Dictionary(self.corpus.tokens_by_text(stopwords=self.stopwords, stopwordlist=self.stopwordlist)))
+        self.dictionary = corpora.Dictionary(self.corpus.tokens_by_text(stopwords=self.stopwords, stopwordlist=self.stopwordlist))
         self.dictionary.save(os.path.join(lsaspacedir, name + '.dict'))
 
     @classmethod
@@ -233,7 +235,14 @@ def init_args(parser='', scriptpath=''):
     parser.add_argument('--stop', dest='stopwords', default='', help='Remove stopwords from corpus: none, nltk, mallet, nonfl. Nltk and mallet also include nonfl (yeah, um). Default is nltk.')
     parser.add_argument('--stopwords', dest='stopwordlist', default='', help='Additional stopwords to include, separated by commas with no spaces')
     parser.add_argument('--embed', dest='embed', action="store_true", help='Bring up an IPython prompt after loading the corpus.')
+    parser.add_argument('--corpusfname', dest='corpusfname', nargs='*', default='', help='Corpus file to read.')
+    parser.add_argument('--iterline', dest='itercode', action="store_const", const=SACorpus.ITER_LINE, help='Iterate over lines in reading file, instead of sections.')
+    parser.add_argument('--iterpara', dest='itercode', action="store_const", const=SACorpus.ITER_PARA, help='Iterate over paragraphs in reading file, instead of sections.')
+    parser.add_argument('--iterid', dest='itercode', action="store_const", const=SACorpus.ITER_ID, help='Iterate over docs/participants/ids in reading file, instead of sections.')
+    parser.add_argument('--savetext', dest='savetext', action="store_true", help='Save the document text of <corpusfname> for later access')
     args = parser.parse_args()
+    if not args.itercode:
+        args.itercode = SACorpus.ITER_SECT
     return args
 
 def main(): 
@@ -251,6 +260,17 @@ def main():
             gscorpus = GSCorpus.load(args.dictname)
             for (k,v) in sorted(gscorpus.dictionary.iteritems()):
                 print('%s\t%s' % (k,v))
+        elif args.corpusfname:
+            sacorpus = SACorpus(args.corpusfname, maxsize=args.maxsize, itercode=args.itercode)
+            if args.printwidth:
+                sacorpus.print_corpus(slice(0,int(args.printwidth)))
+            else:
+                sacorpus.print_corpus(slice(0,50))
+        return
+    if args.printdoctitles and args.name:
+        gscorpus = GSCorpus.load(args.name)
+        gscorpus.doctitle = GSCorpus.load_doctitle(args.name)
+        gscorpus.print_doctitles()
         return
     sacorpus = SACorpus(args.corpusfname, maxsize=args.maxsize, itercode=args.itercode)
     gscorpus = GSCorpus(sacorpus, stopwords=args.stopwords, stopwordlist=args.stopwordlist.split(','))

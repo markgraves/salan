@@ -3,7 +3,7 @@
 
 import logging
 import os, argparse, sys
-import re, string
+import re
 
 from gensim import corpora, models, similarities
 import gensim.utils
@@ -20,7 +20,7 @@ class SACorpus:
     ITER_LINE = 1
     ITER_PARA = 1 #same as line for LNI corpus
     ITER_PARA2 = 3 #requires a blank line; not implemented
-    ITER_LNI = 4
+    ITER_SECT = 4
     ITER_CHAP = 5 #not implemented
     ITER_ID = 6
 
@@ -35,23 +35,23 @@ class SACorpus:
 
     def __iter__(self):
         if self.itercode == self.ITER_LINE:
-            logger.debug('Iterating over SACorpus %s by line' % self.corpusfname)
+            LOGGER.debug('Iterating over SACorpus %s by line' % self.corpusfname)
             return self.iter_line()
         elif self.itercode == self.ITER_PARA:
-            logger.debug('Iterating over SACorpus %s by paragraph' % self.corpusfname)
+            LOGGER.debug('Iterating over SACorpus %s by paragraph' % self.corpusfname)
             return self.iter_para()
-        elif self.itercode == self.ITER_LNI:
-            logger.debug('Iterating over SACorpus %s by section' % self.corpusfname)
+        elif self.itercode == self.ITER_SECT:
+            LOGGER.debug('Iterating over SACorpus %s by section' % self.corpusfname)
             return self.iter_lni()
         elif self.itercode == self.ITER_ID:
-            logger.debug('Iterating over SACorpus %s by participant' % self.corpusfname)
+            LOGGER.debug('Iterating over SACorpus %s by participant' % self.corpusfname)
             return self.iter_participant()
         else:
-            logger.warn('Unknown iterator specification for SACorpus %s. Iterating by paragraph.' % self.corpusfname)
+            LOGGER.warn('Unknown iterator specification for SACorpus %s. Iterating by paragraph.' % self.corpusfname)
             return self.iter_para()
     
     def __len__(self): #Warning: Very inefficient if this is called unnecessarily
-        logger.debug('Calculating length for ' + self.name)
+        LOGGER.debug('Calculating length for ' + self.name)
         return len(list(self.tokens_by_text()))
 
     def iter_line(self):
@@ -61,7 +61,7 @@ class SACorpus:
         return self._iter_helper(self.ITER_PARA)
 
     def iter_lni(self): 
-        return self._iter_helper(self.ITER_LNI)
+        return self._iter_helper(self.ITER_SECT)
 
     def iter_participant(self): 
         return self._iter_helper(self.ITER_ID)
@@ -87,28 +87,28 @@ class SACorpus:
                     continue
                 if line[0] == '%':
                     if text_queue:
-                        if yield_code == self.ITER_LNI: # yield lni section
+                        if yield_code == self.ITER_SECT: # yield lni section
                             yield id, category, ' '.join(text_queue)
                             text_queue = []
                             queue_words = 0
                     if line[0:3] == '%Q.':
                         #qdict[id].append(category)
                         if line[0:7] == '%Q.LNI.':
-                            category = string.strip(line[7:]).lower()
+                            category = line[7:].lower().strip()
                         elif line[0:6] == '%Q.NP.':
-                            category = string.strip(line[6:]).lower()
+                            category = line[6:].lower().strip()
                         else:
-                            category = string.strip(line[3:]).lower()
+                            category = line[3:].lower().strip()
                         #response, do not continue
                     if line[0:5] == '%DOC.':
-                        category = string.strip(line[5:]).lower()
+                        category = line[5:].lower().strip()
                     elif line[0:6] == '%BEGIN':
-                        id_from_header = string.strip(line[7:])
+                        id_from_header = line[7:].strip()
                         id = id_from_header
                     elif line[0:4] == '%END':
-                        id_from_header = string.strip(line[4:])
+                        id_from_header = line[4:].strip()
                         if id_from_header != id:
-                            logger.error('Inconsistent IDs: %s in %%END statement for %s.', id_from_header, id)
+                            LOGGER.error('Inconsistent IDs: %s in %%END statement for %s.', id_from_header, id)
                         if yield_code == self.ITER_ID and text_queue: # yield entire participant text
                             yield id, '', ' '.join(text_queue)
                             text_queue = []
@@ -116,10 +116,10 @@ class SACorpus:
                     elif line[0:8] == '%COMMENT':
                         continue
                     continue
-                if string.find(line, ':') > 0:
-                    logger.error("Invalid character ':' in SACorpus file. File may need preprocessing: %s. --Line: %s", self.corpusfname, line)
+                if False and line.find(':') > 0:
+                    LOGGER.error("Invalid character ':' in SACorpus file. File may need preprocessing: %s. --Line: %s", self.corpusfname, line)
                     sys.exit(1)
-                line = string.strip(line)
+                line = line.strip()
                 if maxsize > 0:
                     line_split = line.split()
                     line_numwords = len(line_split)
@@ -133,7 +133,7 @@ class SACorpus:
                             remainder = line_split[start+maxsize:]
                             if remainder:
                                 yield id, category, ' '.join(line_split[start+maxsize:])
-                    else:# (yield_code == self.ITER_LNI or yield_code == self.ITER_ID):
+                    else:# (yield_code == self.ITER_SECT or yield_code == self.ITER_ID):
                         #using text_queue
                         if line_numwords + queue_words < maxsize:
                             #continue building queue
@@ -166,7 +166,7 @@ class SACorpus:
                     if (yield_code == self.ITER_LINE) or (yield_code == self.ITER_PARA): # yield line
                         yield id, category, line
                     else:
-                        text_queue.append(string.strip(line))
+                        text_queue.append(line.strip())
         finally:
             fp.close()
             #embed()
@@ -174,9 +174,9 @@ class SACorpus:
     def print_corpus(self, slice=None):
         for id, category, line in self:
             if slice:
-                print("%s\t%s\t%s" % (id, category, string.strip(line[slice])))
+                print("%s\t%s\t%s" % (id, category, line[slice].strip()))
             else:
-                print("%s\t%s\t%s" % (id, category, string.strip(line)))
+                print("%s\t%s\t%s" % (id, category, line.strip()))
     
     def tokens_by_text(self, stopwords='', stopwordlist=[]): 
         id, cat, tokens = zip(*self.id_cat_tokens_by_text(stopwords=stopwords, stopwordlist=stopwordlist))
@@ -184,9 +184,9 @@ class SACorpus:
 
     def id_cat_tokens_by_text(self, stopwords='', stopwordlist=[]): #MAYBE TODO: Could add filters as args here
         (stopwords, stoplist) = get_stoplist(stopwords)
-        logger.debug('Filtering %s stopwords from %s.' % (stopwords, self.corpusfname))
+        LOGGER.debug('Filtering %s stopwords from %s.' % (stopwords, self.corpusfname))
         if stopwordlist:
-            logger.debug('Filtering additional stopwords from %s: %s.' % (self.corpusfname, stopwordlist))
+            LOGGER.debug('Filtering additional stopwords from %s: %s.' % (self.corpusfname, stopwordlist))
             stoplist += stopwordlist
         re_token = re.compile(r"[^a-zA-Z0-9 ]+")
         for id, category, text in self:
@@ -222,7 +222,7 @@ def init_args(parser='', scriptpath=''):
     parser.add_argument('--stop', dest='stopwords', default='', help='Remove stopwords from corpus: none, nltk, mallet, nonfl. Nltk and mallet also include nonfl (yeah, um). Default is nltk.')
     args = parser.parse_args()
     if not args.itercode:
-        args.itercode = SACorpus.ITER_LNI
+        args.itercode = SACorpus.ITER_SECT
     return args
 
 def main(): 

@@ -1,5 +1,7 @@
 """Semantic analysis utilities"""
 
+import os
+import re
 import logging
 import nltk
 
