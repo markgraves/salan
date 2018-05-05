@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import division, print_function
 import os, argparse, logging, sys
 import re, string
 from gensim import corpora, models, similarities
