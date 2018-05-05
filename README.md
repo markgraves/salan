@@ -1,2 +1,2 @@
-# sanal
-Semantic analysis tools
+# salan
+Semantic analysis (of language) tools
