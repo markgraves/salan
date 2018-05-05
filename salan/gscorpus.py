@@ -10,8 +10,8 @@ import nltk.corpus
 from IPython import embed
 import fileinput
 from sautil import normalize_word
-import fcorpus
-from fcorpus import SACorpus
+import sacorpus
+from sacorpus import SACorpus
 
 logger = logging.getLogger('salan')
 log_filename = 'log.txt'
