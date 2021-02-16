@@ -9,9 +9,9 @@ import gensim.utils
 import nltk.corpus
 from IPython import embed
 import fileinput
-from sautil import normalize_word
-import sacorpus
-from sacorpus import SACorpus
+from salan.sautil import normalize_word
+# import sacorpus
+from salan.sacorpus import SACorpus
 
 logger = logging.getLogger('salan')
 log_filename = 'log.txt'

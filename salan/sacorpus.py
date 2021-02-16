@@ -11,7 +11,7 @@ import nltk.corpus
 from IPython import embed
 import fileinput
 
-from sautil import normalize_word, get_stoplist
+from salan.sautil import normalize_word, get_stoplist
 
 LOGGER = logging.getLogger(__name__)
 
