@@ -51,7 +51,7 @@ class SACorpus:
             return self.iter_para()
     
     def __len__(self): #Warning: Very inefficient if this is called unnecessarily
-        LOGGER.debug('Calculating length for ' + self.name)
+        LOGGER.debug('Calculating length for ' + self.corpusfname)
         return len(list(self.tokens_by_text()))
 
     def iter_line(self):
